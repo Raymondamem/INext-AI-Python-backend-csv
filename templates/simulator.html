@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iNext AI - Crypto Trading Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://www.tradingview.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root {
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff00ff;
+            --dark-bg: #1a1a2e;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-color: #e0e0ff;
+            --accent-gold: #ffd700;
+            --light-bg: #f0f4f8;
+            --light-card-bg: #ffffff;
+            --light-text: #1a1a2e;
+            --light-accent: #007bff;
+        }
+
+        body {
+            display: flex;
+            background: linear-gradient(135deg, var(--dark-bg), #16213e);
+            color: var(--text-color);
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            transition: background 0.5s ease, color 0.5s ease;
+        }
+
+        body.light-theme {
+            background: linear-gradient(135deg, var(--light-bg), #e0e6ef);
+            color: var(--light-text);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 2rem 1rem;
+            height: 100vh;
+            position: fixed;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-250px);
+        }
+
+        .sidebar .logo h3 {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+            margin-bottom: 2rem;
+        }
+
+        .sidebar a, .sidebar p {
+            color: var(--text-color);
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0;
+            border-radius: 5px;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .sidebar a:hover {
+            background: var(--neon-cyan);
+            color: var(--dark-bg);
+        }
+
+        .sidebar a.active {
+            background: var(--neon-cyan);
+            color: var(--dark-bg);
+        }
+
+        .sidebar .wallet-address {
+            word-break: break-all;
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+        }
+
+        /* Profile */
+        .profile {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 255, 204, 0.3);
+        }
+
+        .profile .username {
+            color: var(--neon-cyan);
+            font-weight: bold;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+            width: calc(100% - 250px);
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+
+        .main-content.full-width {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 255, 204, 0.3);
+        }
+
+        .highlight-card {
+            border-left: 5px solid var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+        }
+
+        .neon-text {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.7);
+        }
+
+        /* Trading Interface */
+        .trading-interface {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .trading-interface .chart-container {
+            height: 500px;
+            margin-bottom: 1.5rem;
+        }
+
+        .trade-panel {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .trade-panel input, .trade-panel select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-cyan);
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 5px;
+        }
+
+        .trade-panel button {
+            flex: 1;
+        }
+
+        .market-trends {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .trend-item {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        /* Light Theme Overrides */
+        body.light-theme .sidebar,
+        body.light-theme .profile,
+        body.light-theme .card,
+        body.light-theme .trading-interface {
+            background: var(--light-card-bg);
+            border-color: var(--light-accent);
+            color: var(--light-text);
+        }
+
+        body.light-theme .sidebar a,
+        body.light-theme .sidebar p,
+        body.light-theme .profile p,
+        body.light-theme .card p,
+        body.light-theme .trading-interface p {
+            color: var(--light-text);
+        }
+
+        body.light-theme .sidebar a.active,
+        body.light-theme .btn-neon {
+            background: linear-gradient(45deg, var(--light-accent), #00ccff);
+            color: #ffffff;
+        }
+
+        body.light-theme .neon-text {
+            color: var(--light-accent);
+            text-shadow: none;
+        }
+
+        body.light-theme .wallet-address,
+        body.light-theme .profile .username {
+            color: #d4a017;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-250px);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .trading-interface .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo">
+            <h3><i class="fas fa-brain me-2"></i>iNext AI</h3>
+        </div>
+        <a href="/dashboard"><i class="fas fa-chart-line me-2"></i>Dashboard</a>
+        <a href="/chat" class="nav-link">
+            <i class='bx bx-chat'></i> AI Chat
+        </a>
+        <a href="/simulator" class="nav-link active">
+            <i class='bx bx-line-chart'></i> Trading Simulator
+        </a>
+        <a href="#journal"><i class="fas fa-book me-2"></i>Journal</a>
+        <a href="#recommendations"><i class="fas fa-bell me-2"></i>Recommendations</a>
+        <a href="#profile"><i class="fas fa-user me-2"></i>Profile</a>
+        <p id="walletAddress" class="wallet-address">Wallet: 0x1234...5678</p>
+        <button id="themeToggle" class="btn-neon mt-3"><i class="fas fa-sun me-2"></i>Toggle Theme</button>
+        <button id="toggleSidebar" class="btn-neon mt-3 d-md-none"><i class="fas fa-bars me-2"></i>Menu</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <!-- Profile -->
+        <div class="profile">
+            <h3 class="neon-text"><i class="fas fa-user-circle me-2"></i>User Profile</h3>
+            <p class="username" id="username">User</p>
+            <p id="user-xp">XP: 0</p>
+            <p id="user-level">Level: 1</p>
+            <p id="wishlist">Wishlist: None</p>
+        </div>
+
+        <h1 class="neon-text mb-4"><i class="fas fa-coins me-2"></i>Crypto Trading Dashboard</h1>
+
+        <div class="row sortable">
+            <!-- Performance Metrics -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <h3 class="neon-text"><i class="fas fa-trophy me-2"></i>Performance Metrics</h3>
+                    <div class="stat-box">
+                        <i class="fas fa-check-circle stat-icon"></i>
+                        <div>Win Rate: <span class="neon-text" id="win-rate">0%</span></div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-coins stat-icon"></i>
+                        <div>Profit/Loss: <span class="neon-text" id="pnl">0 USDT</span></div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-exchange-alt stat-icon"></i>
+                        <div>Total Trades: <span class="neon-text" id="total-trades">0</span></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emotional Triggers -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card highlight-card">
+                    <h3 class="neon-text"><i class="fas fa-brain me-2"></i>Emotional Triggers</h3>
+                    <div class="stat-box">
+                        <i class="fas fa-running stat-icon"></i>
+                        <div>FOMO Index: <span class="neon-text" id="fomo-index">0</span></div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-fire stat-icon"></i>
+                        <div>Revenge Trades: <span class="neon-text" id="revenge-trades">0</span></div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-dollar-sign stat-icon"></i>
+                        <div>Greed Index: <span class="neon-text" id="greed-index">0</span></div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-shield-alt stat-icon"></i>
+                        <div>Fear Index: <span class="neon-text" id="fear-index">0</span></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="triggersChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mood Check -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <h3 class="neon-text"><i class="fas fa-heart me-2"></i>Mood Check</h3>
+                    <div class="mood-selector">
+                        <div class="mood-option confident" data-mood="confident">
+                            <i class="fas fa-smile-beam fa-2x mb-2"></i><br>Confident
+                        </div>
+                        <div class="mood-option neutral" data-mood="neutral">
+                            <i class="fas fa-meh fa-2x mb-2"></i><br>Neutral
+                        </div>
+                        <div class="mood-option anxious" data-mood="anxious">
+                            <i class="fas fa-flushed fa-2x mb-2"></i><br>Anxious
+                        </div>
+                    </div>
+                    <div class="mood-selector">
+                        <div class="mood-option excited" data-mood="excited">
+                            <i class="fas fa-grin-stars fa-2x mb-2"></i><br>Excited
+                        </div>
+                        <div class="mood-option stressed" data-mood="stressed">
+                            <i class="fas fa-tired fa-2x mb-2"></i><br>Stressed
+                        </div>
+                    </div>
+                    <button id="submit-mood" class="btn-neon w-100 mt-2">Submit Mood</button>
+                    <div id="mood-feedback" class="mt-3"></div>
+                    <h4 class="mt-4"><i class="fas fa-history me-2"></i>Recent Moods</h4>
+                    <div id="recent-moods" class="mt-2"></div>
+                </div>
+            </div>
+
+            <!-- Trading Journal -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <h3 class="neon-text"><i class="fas fa-book me-2"></i>Trading Journal</h3>
+                    <textarea id="journal-entry" class="form-control mb-2" rows="3" placeholder="Log your thoughts, emotions, and trading rationale..."></textarea>
+                    <button id="submit-journal" class="btn-neon w-100">Save Entry</button>
+                    <div id="journal-feedback" class="mt-2"></div>
+                    <h4 class="mt-4"><i class="fas fa-list-ul me-2"></i>Recent Entries</h4>
+                    <div id="recent-journal-entries"></div>
+                </div>
+            </div>
+
+            <!-- AI Copilot -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card highlight-card">
+                    <h3 class="neon-text"><i class="fas fa-robot me-2"></i>AI Copilot</h3>
+                    <div class="mb-3">
+                        <button id="get-advice" class="btn-neon w-100 mb-2">
+                            <i class="fas fa-lightbulb me-2"></i>Get Trading Advice
+                        </button>
+                        <button id="analyze-behavior" class="btn-neon w-100">
+                            <i class="fas fa-chart-pie me-2"></i>Analyze My Behavior
+                        </button>
+                    </div>
+                    <div id="copilot-response" class="p-3 bg-dark rounded">
+                        <p class="mb-0">Your AI-generated insights will appear here...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <h3 class="neon-text"><i class="fas fa-bell me-2"></i>Recommendations</h3>
+                    <div id="recommendations-list">
+                        <div class="recommendation-item">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>System:</strong> Complete your mood check for personalized recommendations
+                        </div>
+                    </div>
+                    <button id="refresh-recommendations" class="btn-neon w-100 mt-2">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Trading Interface -->
+            <div class="col-12">
+                <div class="trading-interface card">
+                    <h3 class="neon-text"><i class="fas fa-chart-bar me-2"></i>Trading Interface</h3>
+                    <div class="d-flex justify-content-between mb-3">
+                        <select id="symbol-select" class="form-control w-auto">
+                            <option value="BTCUSDT">BTC/USDT</option>
+                            <option value="ETHUSDT">ETH/USDT</option>
+                            <option value="BNBUSDT">BNB/USDT</option>
+                        </select>
+                        <div>
+                            <button id="timeframe-1m" class="btn-neon mx-1">1m</button>
+                            <button id="timeframe-5m" class="btn-neon mx-1">5m</button>
+                            <button id="timeframe-1h" class="btn-neon mx-1">1h</button>
+                        </div>
+                    </div>
+                    <div class="chart-container" id="trading-chart"></div>
+                    <div class="trade-panel">
+                        <select id="order-type" class="form-control">
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                        </select>
+                        <input type="number" id="order-amount" class="form-control" placeholder="Amount (USDT)" min="0" step="0.01">
+                        <button id="buy-order" class="btn-neon">Buy</button>
+                        <button id="sell-order" class="btn-neon">Sell</button>
+                    </div>
+                    <div class="market-trends">
+                        <div class="trend-item">
+                            <h5>Price</h5>
+                            <p id="current-price">0 USDT</p>
+                        </div>
+                        <div class="trend-item">
+                            <h5>24h Change</h5>
+                            <p id="price-change">0%</p>
+                        </div>
+                        <div class="trend-item">
+                            <h5>Volume</h5>
+                            <p id="volume">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const userId = 1; // Replace with actual user authentication
+
+            // Initialize Sidebar Toggle
+            const toggleSidebar = document.getElementById('toggleSidebar');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            toggleSidebar.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+                mainContent.classList.toggle('full-width');
+            });
+
+            // Initialize Theme
+            async function initTheme() {
+                try {
+                    const response = await fetch('/api/get_theme', {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include'
+                    });
+                    if (response.ok) {
+                        const { theme } = await response.json();
+                        document.body.classList.toggle('light-theme', theme === 'light');
+                    }
+                } catch (error) {
+                    console.error('Error loading theme:', error);
+                }
+            }
+
+            async function toggleTheme() {
+                const isLight = document.body.classList.toggle('light-theme');
+                const theme = isLight ? 'light' : 'dark';
+                try {
+                    await fetch('/api/update_theme', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ theme })
+                    });
+                } catch (error) {
+                    console.error('Error updating theme:', error);
+                }
+            }
+
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            initTheme();
+
+            // Initialize Charts (placeholders, no CSS impact)
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            const triggersCtx = document.getElementById('triggersChart').getContext('2d');
+            let performanceChart = new Chart(performanceCtx, {
+                type: 'doughnut',
+                data: { labels: ['Wins', 'Losses', 'Breakeven'], datasets: [{ data: [0, 0, 0] }] },
+                options: { responsive: true }
+            });
+            let triggersChart = new Chart(triggersCtx, {
+                type: 'radar',
+                data: { labels: ['Greed', 'Fear', 'FOMO', 'Revenge', 'Confidence'], datasets: [{ label: 'Emotional Index', data: [0, 0, 0, 0, 0] }] },
+                options: { responsive: true }
+            });
+
+            // TradingView Chart
+            const chartContainer = document.getElementById('trading-chart');
+            const chart = LightweightCharts.createChart(chartContainer, { width: chartContainer.offsetWidth, height: 500 });
+            const candlestickSeries = chart.addCandlestickSeries();
+
+            let currentTimeframe = '5m';
+            async function loadChartData(symbol = 'BTCUSDT', timeframe = currentTimeframe) {
+                try {
+                    const response = await fetch(`/api/market_data/${symbol}?timeframe=${timeframe}`);
+                    const data = await response.json();
+                    candlestickSeries.setData(data.map(item => ({
+                        time: item.timestamp / 1000,
+                        open: item.open,
+                        high: item.high,
+                        low: item.low,
+                        close: item.close
+                    })));
+                    updateMarketTrends(data[data.length - 1]);
+                } catch (error) {
+                    console.error('Error loading chart data:', error);
+                }
+            }
+
+            function updateMarketTrends(latest) {
+                document.getElementById('current-price').textContent = `${latest.close.toFixed(2)} USDT`;
+                const change = ((latest.close - latest.open) / latest.open * 100).toFixed(2);
+                document.getElementById('price-change').textContent = `${change}%`;
+                document.getElementById('price-change').style.color = change >= 0 ? '#00ff00' : '#ff0000';
+                document.getElementById('volume').textContent = latest.volume.toFixed(2);
+            }
+
+            document.getElementById('symbol-select').addEventListener('change', (e) => loadChartData(e.target.value));
+            document.getElementById('timeframe-1m').addEventListener('click', () => { currentTimeframe = '1m'; loadChartData(); });
+            document.getElementById('timeframe-5m').addEventListener('click', () => { currentTimeframe = '5m'; loadChartData(); });
+            document.getElementById('timeframe-1h').addEventListener('click', () => { currentTimeframe = '1h'; loadChartData(); });
+
+            // Trade Execution
+            document.getElementById('buy-order').addEventListener('click', async () => {
+                const amount = document.getElementById('order-amount').value;
+                const type = document.getElementById('order-type').value;
+                if (!amount) return alert('Please enter an amount');
+                try {
+                    const response = await fetch('/api/place_order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, symbol: document.getElementById('symbol-select').value, type, side: 'buy', amount })
+                    });
+                    const data = await response.json();
+                    alert('Buy order placed (demo)');
+                    if (data.predicted_emotion) {
+                        document.getElementById('copilot-response').innerHTML = `
+                            <div class="recommendation-item warning">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Warning:</strong> ${data.warning.warning}
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error placing order:', error);
+                    alert('Failed to place order');
+                }
+            });
+
+            document.getElementById('sell-order').addEventListener('click', async () => {
+                const amount = document.getElementById('order-amount').value;
+                const type = document.getElementById('order-type').value;
+                if (!amount) return alert('Please enter an amount');
+                try {
+                    const response = await fetch('/api/place_order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, symbol: document.getElementById('symbol-select').value, type, side: 'sell', amount })
+                    });
+                    const data = await response.json();
+                    alert('Sell order placed (demo)');
+                    if (data.predicted_emotion) {
+                        document.getElementById('copilot-response').innerHTML = `
+                            <div class="recommendation-item warning">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Warning:</strong> ${data.warning.warning}
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error placing order:', error);
+                    alert('Failed to place order');
+                }
+            });
+
+            // WebSocket for Real-Time Updates
+            const ws = new WebSocket('wss://your-websocket-endpoint');
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                candlestickSeries.update({
+                    time: data.timestamp / 1000,
+                    open: data.open,
+                    high: data.high,
+                    low: data.low,
+                    close: data.close
+                });
+                updateMarketTrends(data);
+            };
+
+            // Mood Selection
+            let selectedMood = null;
+            document.querySelectorAll('.mood-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.mood-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedMood = this.getAttribute('data-mood');
+                });
+            });
+
+            document.getElementById('submit-mood').addEventListener('click', async function() {
+                if (!selectedMood) {
+                    document.getElementById('mood-feedback').innerHTML = '<div class="alert alert-warning">Please select a mood first</div>';
+                    return;
+                }
+                try {
+                    const response = await fetch('/mood/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, mood: selectedMood, timestamp: new Date().toISOString() })
+                    });
+                    const data = await response.json();
+                    document.getElementById('mood-feedback').innerHTML = '<div class="alert alert-success">Mood recorded successfully!</div>';
+                    fetchRecentMoods();
+                } catch (error) {
+                    document.getElementById('mood-feedback').innerHTML = '<div class="alert alert-danger">Failed to record mood</div>';
+                }
+            });
+
+            function fetchRecentMoods() {
+                fetch(`/dashboard/${userId}/emotional_trends`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const recentMoods = data.moods.slice(-5).reverse();
+                        let html = '';
+                        recentMoods.forEach(mood => {
+                            const date = new Date(mood.timestamp).toLocaleString();
+                            html += `<div class="stat-box"><i class="fas fa-${getMoodIcon(mood.mood)} stat-icon"></i><div>${date}: ${mood.mood}</div></div>`;
+                        });
+                        document.getElementById('recent-moods').innerHTML = html;
+                        const latest = data.moods[data.moods.length - 1] || {};
+                        triggersChart.data.datasets[0].data = [
+                            latest.greed_index || 0,
+                            latest.fear_index || 0,
+                            latest.fomo_index || 0,
+                            latest.revenge_index || 0,
+                            latest.confidence_index || 0
+                        ];
+                        triggersChart.update();
+                        document.getElementById('fomo-index').textContent = latest.fomo_index ? latest.fomo_index.toFixed(1) : '0';
+                        document.getElementById('greed-index').textContent = latest.greed_index ? latest.greed_index.toFixed(1) : '0';
+                        document.getElementById('fear-index').textContent = latest.fear_index ? latest.fear_index.toFixed(1) : '0';
+                    });
+            }
+
+            function getMoodIcon(mood) {
+                switch(mood) {
+                    case 'confident': return 'smile-beam';
+                    case 'stressed': return 'tired';
+                    case 'neutral': return 'meh';
+                    case 'anxious': return 'flushed';
+                    case 'excited': return 'grin-stars';
+                    default: return 'question-circle';
+                }
+            }
+
+            // Journal
+            document.getElementById('submit-journal').addEventListener('click', async function() {
+                const entryText = document.getElementById('journal-entry').value.trim();
+                if (!entryText) {
+                    document.getElementById('journal-feedback').innerHTML = '<div class="alert alert-warning">Please enter some text</div>';
+                    return;
+                }
+                try {
+                    await fetch('/journal/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, entry: entryText, timestamp: new Date().toISOString() })
+                    });
+                    document.getElementById('journal-feedback').innerHTML = '<div class="alert alert-success">Journal entry saved (demo)</div>';
+                    const now = new Date();
+                    const entryHtml = `<div class="journal-entry"><strong>${now.toLocaleString()}:</strong><p>${entryText}</p></div>`;
+                    document.getElementById('recent-journal-entries').insertAdjacentHTML('afterbegin', entryHtml);
+                    document.getElementById('journal-entry').value = '';
+                } catch (error) {
+                    document.getElementById('journal-feedback').innerHTML = '<div class="alert alert-danger">Failed to save journal</div>';
+                }
+            });
+
+            // AI Copilot
+            document.getElementById('get-advice').addEventListener('click', async function() {
+                try {
+                    const response = await fetch(`/recommendations/${userId}`);
+                    const data = await response.json();
+                    let html = data.length ? data.map(rec => `
+                        <div class="recommendation-item ${rec.severity}">
+                            <i class="fas fa-${getSeverityIcon(rec.severity)} me-2"></i>
+                            <strong>${rec.timestamp}:</strong> ${rec.message}
+                        </div>
+                    `).join('') : '<p>No recommendations available.</p>';
+                    document.getElementById('copilot-response').innerHTML = html;
+                } catch (error) {
+                    document.getElementById('copilot-response').innerHTML = '<div class="alert alert-danger">Failed to get recommendations</div>';
+                }
+            });
+
+            document.getElementById('analyze-behavior').addEventListener('click', async function() {
+                try {
+                    const response = await fetch(`/behavior/${userId}`); // Placeholder endpoint
+                    const data = await response.json();
+                    document.getElementById('copilot-response').innerHTML = `
+                        <div class="recommendation-item">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            <strong>Behavior Analysis:</strong> ${data.message || 'You tend to make aggressive trades when anxious. Consider stricter stop-loss limits.'}
+                        </div>
+                    `;
+                } catch (error) {
+                    document.getElementById('copilot-response').innerHTML = '<div class="alert alert-danger">Failed to analyze behavior</div>';
+                }
+            });
+
+            function getSeverityIcon(severity) {
+                switch(severity) {
+                    case 'critical': return 'exclamation-triangle';
+                    case 'warning': return 'exclamation-circle';
+                    default: return 'info-circle';
+                }
+            }
+
+            // Recommendations
+            document.getElementById('refresh-recommendations').addEventListener('click', async function() {
+                try {
+                    const response = await fetch(`/recommendations/${userId}`);
+                    const data = await response.json();
+                    let html = data.length ? data.map(rec => `
+                        <div class="recommendation-item ${rec.severity}">
+                            <i class="fas fa-${getSeverityIcon(rec.severity)} me-2"></i>
+                            <strong>${rec.timestamp}:</strong> ${rec.message}
+                        </div>
+                    `).join('') : '<div class="recommendation-item">No new recommendations available</div>';
+                    document.getElementById('recommendations-list').innerHTML = html;
+                } catch (error) {
+                    document.getElementById('recommendations-list').innerHTML = '<div class="alert alert-danger">Failed to refresh recommendations</div>';
+                }
+            });
+
+            // Initial Data Load
+            fetchRecentMoods();
+            fetch(`/users/${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('username').textContent = data.username || 'User';
+                    document.getElementById('user-xp').textContent = `XP: ${data.xp || 0}`;
+                    document.getElementById('user-level').textContent = `Level: ${data.level || 1}`;
+                    document.getElementById('wishlist').textContent = `Wishlist: ${data.wishlist || 'None'}`;
+                    document.getElementById('walletAddress').textContent = `Wallet: ${data.wallet || '0x1234...5678'}`;
+                });
+            setTimeout(() => {
+                performanceChart.data.datasets[0].data = [12, 8, 5];
+                performanceChart.update();
+                document.getElementById('win-rate').textContent = '48%';
+                document.getElementById('pnl').textContent = '+342.50 USDT';
+                document.getElementById('total-trades').textContent = '25';
+            }, 1000);
+            loadChartData();
+        });
+    </script>
+</body>
