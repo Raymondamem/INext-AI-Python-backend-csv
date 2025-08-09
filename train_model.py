@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore')
 def load_and_preprocess_data():
     """Load and preprocess the trading data"""
     print("📊 Loading CSV data...")
-    df = pd.read_csv('Book1.csv')
+    df = pd.read_csv('./data/Book1.csv')
     
     # Clean up the data
     print(f"📈 Loaded {len(df)} trading records")
@@ -229,12 +229,12 @@ def save_model_artifacts(model, le, df):
     print("💾 Saving model artifacts...")
     
     # Save trained model
-    joblib.dump(model, 'emotion_predictor.pkl')
-    print("✅ Saved: emotion_predictor.pkl")
+    joblib.dump(model, './data/emotion_predictor.pkl')
+    print("✅ Saved: ./data/emotion_predictor.pkl")
     
     # Save label encoder
-    joblib.dump(le, 'label_encoder.pkl')
-    print("✅ Saved: label_encoder.pkl")
+    joblib.dump(le, './data/label_encoder.pkl')
+    print("✅ Saved: ./data/label_encoder.pkl")
     
     # Save sample features for testing
     sample_features = df[['time_diff', 'price_change_pct', 'position_change', 

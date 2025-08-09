@@ -31,8 +31,8 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["1000/minute"])
 async def lifespan(app: FastAPI):
     # Load pre-trained model and encoder on startup
     global model, le
-    model = joblib.load('emotion_predictor.pkl')
-    le = joblib.load('label_encoder.pkl')
+    model = joblib.load('./data/emotion_predictor.pkl')
+    le = joblib.load('./data/label_encoder.pkl')
     yield
     # Cleanup on shutdown (optional)
     logger.info("Shutting down backend")
@@ -195,8 +195,8 @@ async def place_order(trade: Trade):
         X = ml_df.drop(columns=['emotion'])
         y = le.transform(ml_df['emotion'])
         model.fit(X, y)  # Retrain with new data
-        joblib.dump(model, 'emotion_predictor.pkl')
-        joblib.dump(le, 'label_encoder.pkl')
+        joblib.dump(model, './data/emotion_predictor.pkl')
+        joblib.dump(le, './data/label_encoder.pkl')
 
         if len(df) >= 4:
             predicted_emotion, _ = predict_next_emotion(df, model, le)

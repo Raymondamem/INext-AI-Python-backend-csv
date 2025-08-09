@@ -10,7 +10,8 @@ import sys
 from datetime import datetime
 
 # Configuration
-BASE_URL = "http://localhost:8000"  # Change to your deployed URL for production testing
+# BASE_URL = "http://localhost:8000"  # Change to your deployed URL for production testing
+BASE_URL = "http://0.0.0.0:8000/"
 
 def test_basic_endpoints():
     """Test basic API endpoints"""

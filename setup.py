@@ -10,7 +10,7 @@ from pathlib import Path
 
 def check_requirements():
     """Check if required files exist"""
-    required_files = ['Book1.csv', 'app.py', 'requirements.txt']
+    required_files = ['./data/Book1.csv', 'app.py', 'requirements.txt']
     missing_files = []
     
     for file in required_files:
@@ -47,7 +47,7 @@ def train_model():
 
 def verify_pickle_files():
     """Verify that pickle files were created"""
-    pickle_files = ['emotion_predictor.pkl', 'label_encoder.pkl']
+    pickle_files = ['./data/emotion_predictor.pkl', './data/label_encoder.pkl']
     missing_files = []
     
     for file in pickle_files:
